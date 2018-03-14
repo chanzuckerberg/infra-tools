@@ -4,6 +4,14 @@ set -euo pipefail
 
 CMD="$1"
 
+login()
+{
+    if [ -z "${DOCKER_USER:-}" ] || [ -z "${DOCKER_PASS:-}" ]; then
+        echo "Please set DOCKER_USER and DOCKER_PASS environment variables."
+        exit 1
+    fi
+    docker login -u $DOCKER_USER -p $DOCKER_PASS
+}
 
 case $CMD in
     build)
@@ -11,9 +19,10 @@ case $CMD in
         BRANCH=`echo $3 | sed 's/\//-/g'`
         COMMIT="$4"
         BUILD_NUMBER="$5"
-
         CI_TAG="$REPO:ci"
 
+        login
+        
         docker pull $CI_TAG || true
         docker build -t $CI_TAG .
 
@@ -23,11 +32,7 @@ case $CMD in
     ;;
     push)
         REPO="$2"
-        if [ -z "${DOCKER_USER:-}" ] || [ -z "${DOCKER_PASS:-}" ]; then
-            echo "Please set DOCKER_USER and DOCKER_PASS environment variables."
-            exit 1
-        fi
-        docker login -u $DOCKER_USER -p $DOCKER_PASS
+        login
         docker push $REPO
     ;;
     *)
