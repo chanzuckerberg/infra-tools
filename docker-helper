@@ -1,0 +1,36 @@
+#!/bin/bash 
+
+set -euo pipefail
+
+CMD="$1"
+
+
+case $CMD in
+    build)
+        REPO="$2"
+        BRANCH=`echo $3 | sed 's/\//-/g'`
+        COMMIT="$4"
+        BUILD_NUMBER="$5"
+
+        CI_TAG="$REPO:ci"
+
+        docker pull $CI_TAG || true
+        docker build -t $CI_TAG .
+
+        docker tag $CI_TAG $REPO:"sha-$COMMIT"
+        docker tag $CI_TAG $REPO:"branch-$BRANCH"
+        docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
+    ;;
+    push)
+        REPO="$2"
+        if [ -z "${DOCKER_USER:-}" ] || [ -z "${DOCKER_PASS:-}" ]; then
+            echo "Please set DOCKER_USER and DOCKER_PASS environment variables."
+            exit 1
+        fi
+        docker login -u $DOCKER_USER -p $DOCKER_PASS
+        docker push $REPO
+    ;;
+    *)
+        echo "Unknown command $CMD"
+        exit 1
+esac
