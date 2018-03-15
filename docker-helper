@@ -16,15 +16,16 @@ login()
 case $CMD in
     build)
         REPO="$2"
-        BRANCH=`echo $3 | sed 's/\//-/g'`
-        COMMIT="$4"
-        BUILD_NUMBER="$5"
+        BUILD_PATH="$3"
+        BRANCH=`echo $4 | sed 's/\//-/g'`
+        COMMIT="$5"
+        BUILD_NUMBER="$6"
         CI_TAG="$REPO:ci"
 
         login
         
         docker pull $CI_TAG || true
-        docker build -t $CI_TAG .
+        docker build -t $CI_TAG "$BUILD_PATH"
 
         docker tag $CI_TAG $REPO:"sha-$COMMIT"
         docker tag $CI_TAG $REPO:"branch-$BRANCH"
