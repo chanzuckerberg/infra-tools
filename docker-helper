@@ -6,11 +6,17 @@ CMD="$1"
 
 login()
 {
-    if [ -z "${DOCKER_USER:-}" ] || [ -z "${DOCKER_PASS:-}" ]; then
-        echo "Please set DOCKER_USER and DOCKER_PASS environment variables."
-        exit 1
+    if [ -z "${AWS_PROFILE:-}" ]; then
+        echo "Using Docker Hub login"
+        if [ -z "${DOCKER_USER:-}" ] || [ -z "${DOCKER_PASS:-}" ]; then
+            echo "Please set DOCKER_USER and DOCKER_PASS environment variables."
+            exit 1
+        fi
+        docker login -u $DOCKER_USER -p $DOCKER_PASS
+    else
+        echo "Using ECR login"
+        $(aws ecr get-login --no-include-email)
     fi
-    docker login -u $DOCKER_USER -p $DOCKER_PASS
 }
 
 case $CMD in
