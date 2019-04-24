@@ -23,7 +23,7 @@ case $CMD in
     build)
         REPO="$2"
         BUILD_PATH="$3"
-        BRANCH=`echo $4 | sed 's/\//-/g'`
+        BRANCH=`echo $4 | sed 's/\+\//-/g'`
         COMMIT="$5"
         BUILD_NUMBER="$6"
         CI_TAG="$REPO:ci"
