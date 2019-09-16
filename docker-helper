@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 set -euo pipefail
 
@@ -29,7 +29,7 @@ case $CMD in
         CI_TAG="$REPO:ci"
 
         login
-        
+
         docker pull $CI_TAG || true
         docker build --cache-from $CI_TAG -t $CI_TAG "$BUILD_PATH"
 
@@ -38,9 +38,16 @@ case $CMD in
         docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
     ;;
     push)
+        # push to dockerhub
         REPO="$2"
         login
         docker push $REPO
+        # attempt to push to github registry
+        GITHUB_REPO="docker.pkg.github.com/$REPO"
+        docker push $GITHUB_REPO
+        if [ $? -ne 0 ]; then
+            echo "Push to $GITHUB_REPO failed"
+        fi
     ;;
     *)
         echo "Unknown command $CMD"
