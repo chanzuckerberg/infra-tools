@@ -17,6 +17,7 @@ login()
         echo "Using ECR login"
         $(aws ecr get-login --no-include-email)
     fi
+    docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
 }
 
 case $CMD in
