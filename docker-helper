@@ -55,7 +55,7 @@ case $CMD in
         docker push $REPO
 
         # attempt to push to github registry
-        PROJ_NAME = basename "$REPO"
+        PROJ_NAME=$(basename $REPO)
         GITHUB_REPO="docker.pkg.github.com/$REPO/$PROJ_NAME"
         docker push $GITHUB_REPO
         if [ $? -ne 0 ]; then
