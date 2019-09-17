@@ -27,15 +27,20 @@ case $CMD in
         COMMIT="$5"
         BUILD_NUMBER="$6"
         CI_TAG="$REPO:ci"
+        GITHUB_REPO="docker.pkg.github.com/$REPO"
 
         login
 
         docker pull $CI_TAG || true
         docker build --cache-from $CI_TAG -t $CI_TAG "$BUILD_PATH"
 
+
         docker tag $CI_TAG $REPO:"sha-$COMMIT"
         docker tag $CI_TAG $REPO:"branch-$BRANCH"
         docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
+        docker tag $CI_TAG $GITHUB_REPO:"sha-$COMMIT"
+        docker tag $CI_TAG $GITHUB_REPO:"branch-$BRANCH"
+        docker tag $CI_TAG $GITHUB_REPO:"build-$BUILD_NUMBER"
     ;;
     push)
         # push to dockerhub
