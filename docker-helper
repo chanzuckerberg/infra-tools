@@ -33,7 +33,9 @@ case $CMD in
         COMMIT="$5"
         BUILD_NUMBER="$6"
         CI_TAG="$REPO:ci"
-        GITHUB_REPO="docker.pkg.github.com/$REPO"
+        PROJ_NAME=$(basename $REPO)
+        GITHUB_REPO="docker.pkg.github.com/$REPO/$PROJ_NAME"
+
 
         login
 
