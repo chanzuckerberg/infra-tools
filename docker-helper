@@ -18,6 +18,9 @@ login()
         $(aws ecr get-login --no-include-email)
     fi
     docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
+    if [$? -ne 0]; then
+        echo "Authenticating to Github failed"
+    fi
 }
 
 case $CMD in
