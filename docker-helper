@@ -20,7 +20,7 @@ login()
 
     # Attempt to authenticate into github package registry
     echo "Authenticating on Github. Will peacefully exit if not set up yet."
-    if [-z "${GITHUB_USERNAME:-}"] || [-z "${GITHUB_TOKEN:-}"]; then
+    if [ -z "${GITHUB_USERNAME:-}" ] || [ -z "${GITHUB_TOKEN:-}" ]; then
         echo "Please set GITHUB_USERNAME and GITHUB_TOKEN environment variables."
     else
         docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
