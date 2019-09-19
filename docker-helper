@@ -18,7 +18,7 @@ login()
 
     if ! [ -z "${GITHUB_USERNAME:-}" ] || [ -z "${GITHUB_TOKEN:-}" ]; then
         echo "Github login in progress"
-        docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
+        docker login docker.pkg.github.com -u "$GITHUB_USERNAME" -p "$GITHUB_TOKEN"
     fi
 }
 
