@@ -6,6 +6,17 @@ CMD="$1"
 
 login()
 {
+
+
+    # if aws_profile
+        # aws login
+    
+    # if dockerhub vars set
+        # login dockerhub
+
+    # if github_user set
+        # login to github 
+
     if [ -z "${AWS_PROFILE:-}" ]; then
         echo "Using Docker Hub login"
         if [ -z "${DOCKER_USER:-}" ] || [ -z "${DOCKER_PASS:-}" ]; then
@@ -51,13 +62,25 @@ case $CMD in
         docker tag $CI_TAG $REPO:"sha-$COMMIT"
         docker tag $CI_TAG $REPO:"branch-$BRANCH"
         docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
+        # if github token set
         docker tag $CI_TAG $GITHUB_REPO:"sha-$COMMIT"
         docker tag $CI_TAG $GITHUB_REPO:"branch-$BRANCH"
         docker tag $CI_TAG $GITHUB_REPO:"build-$BUILD_NUMBER"
+        # end if
     ;;
     push)
         # push to dockerhub
         REPO="$2"
+
+        # if aws_profile
+            # push aws
+        
+        # if dockerhub vars set
+            # push dockerhub
+
+        # if github_user set
+            # push to github 
+
         login
         docker push $REPO
 
