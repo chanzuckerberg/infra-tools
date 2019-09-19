@@ -19,9 +19,14 @@ login()
     fi
 
     # Attempt to authenticate into github package registry
-    docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
-    if [$? -ne 0]; then
-        echo "Authenticating to Github failed"
+    echo "Authenticating on Github. Will peacefully exit if not set up yet."
+    if [-z "$GITHUB_USERNAME"] || [-z "$GITHUB_TOKEN"]; then
+        docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
+        if [$? -ne 0]; then
+            echo "Authenticating to Github failed"
+        fi
+    else
+        echo "No Github username or token set as environment variables"
     fi
 }
 
