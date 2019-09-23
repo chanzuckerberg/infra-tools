@@ -6,17 +6,17 @@ CMD="$1"
 
 login()
 {
-    if ! [ -z "${AWS_PROFILE:-}" ]; then
+    if [ -n "${AWS_PROFILE:-}" ]; then
         echo "ECR login in progress"
         $(aws ecr get-login --no-include-email)
     fi
 
-    if ! [ [ -z "${DOCKER_USER:-}" ] || [ -z "${DOCKER_PASS:-}" ] ] ; then
+    if [ [ -n "${DOCKER_USER:-}" ] || [ -n "${DOCKER_PASS:-}" ] ] ; then
         echo "Dockerhub login in progress"
         docker login -u $DOCKER_USER -p $DOCKER_PASS
     fi
 
-    if ! [[ -z "${GITHUB_USERNAME:-}" ]] || [[ -z "${GITHUB_TOKEN:-}" ]] ; then
+    if [ [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ] ] ; then
         echo "Github login in progress"
         docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
     fi
@@ -45,7 +45,7 @@ case $CMD in
         docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
 
         # if github token set
-        if ! [ -z "${GITHUB_USERNAME:-}" ] || [ -z "${GITHUB_TOKEN:-}" ]; then
+        if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
             docker tag $CI_TAG $GITHUB_REPO:"sha-$COMMIT"
             docker tag $CI_TAG $GITHUB_REPO:"branch-$BRANCH"
             docker tag $CI_TAG $GITHUB_REPO:"build-$BUILD_NUMBER"
@@ -59,13 +59,13 @@ case $CMD in
         login
 
         # if dockerhub vars set, push dockerhub
-        if ! [ -z "${DOCKER_USER:-}" ] || [ -z "${DOCKER_PASS:-}" ]; then
+        if [ -n "${DOCKER_USER:-}" ] || [ -n "${DOCKER_PASS:-}" ]; then
             echo "Pushing to Dockerhub"
             docker push $REPO
         fi
 
         # if github_user set, push to github
-        if ! [ -z "${GITHUB_USERNAME:-}" ] || [ -z "${GITHUB_TOKEN:-}" ]; then
+        if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
             echo "Pushing to Github Package Registry"
             docker push $GITHUB_REPO
             if [ $? -ne 0 ]; then
