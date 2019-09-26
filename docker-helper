@@ -6,16 +6,19 @@ CMD="$1"
 
 login()
 {
-    if [ -z "${AWS_PROFILE:-}" ]; then
-        echo "Using Docker Hub login"
-        if [ -z "${DOCKER_USER:-}" ] || [ -z "${DOCKER_PASS:-}" ]; then
-            echo "Please set DOCKER_USER and DOCKER_PASS environment variables."
-            exit 1
-        fi
-        docker login -u $DOCKER_USER -p $DOCKER_PASS
-    else
-        echo "Using ECR login"
+    if [ -n "${AWS_PROFILE:-}" ]; then
+        echo "ECR login in progress"
         $(aws ecr get-login --no-include-email)
+    fi
+
+    if [ -n "${DOCKER_USER:-}" ] || [ -n "${DOCKER_PASS:-}" ] ; then
+        echo "Dockerhub login in progress"
+        docker login -u $DOCKER_USER -p $DOCKER_PASS
+    fi
+
+    if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ] ; then
+        echo "Github login in progress"
+        docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
     fi
 }
 
@@ -27,6 +30,9 @@ case $CMD in
         COMMIT="$5"
         BUILD_NUMBER="$6"
         CI_TAG="$REPO:ci"
+        PROJ_NAME=$(basename $REPO)
+        GITHUB_REPO="docker.pkg.github.com/$REPO/$PROJ_NAME"
+
 
         login
 
@@ -36,18 +42,36 @@ case $CMD in
         docker tag $CI_TAG $REPO:"sha-$COMMIT"
         docker tag $CI_TAG $REPO:"branch-$BRANCH"
         docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
+
+        # if github token set
+        if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+            docker tag $CI_TAG $GITHUB_REPO:"sha-$COMMIT"
+            docker tag $CI_TAG $GITHUB_REPO:"branch-$BRANCH"
+            docker tag $CI_TAG $GITHUB_REPO:"build-$BUILD_NUMBER"
+        fi
     ;;
     push)
-        # push to dockerhub
         REPO="$2"
+        PROJ_NAME=$(basename $REPO)
+        GITHUB_REPO="docker.pkg.github.com/$REPO/$PROJ_NAME"
+
         login
-        docker push $REPO
-        # attempt to push to github registry
-        GITHUB_REPO="docker.pkg.github.com/$REPO"
-        docker push $GITHUB_REPO
-        if [ $? -ne 0 ]; then
-            echo "Push to $GITHUB_REPO failed"
+
+        # if dockerhub vars set, push dockerhub
+        if [ -n "${DOCKER_USER:-}" ] || [ -n "${DOCKER_PASS:-}" ]; then
+            echo "Pushing to Dockerhub"
+            docker push $REPO
         fi
+
+        # if github_user set, push to github
+        if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+            echo "Pushing to Github Package Registry"
+            docker push $GITHUB_REPO
+            if [ $? -ne 0 ]; then
+                echo "Push to $GITHUB_REPO failed"
+            fi
+        fi
+
     ;;
     *)
         echo "Unknown command $CMD"
