@@ -27,12 +27,10 @@ case $CMD in
         REPO="$2"
         BUILD_PATH="$3"
         BRANCH=`echo $4 | sed 's/[\+\/]/-/g'`
-        COMMIT="$5"
-        BUILD_NUMBER="$6"
+        COMMIT=`git rev-parse --short HEAD`
         CI_TAG="$REPO:ci"
         PROJ_NAME=$(basename $REPO)
         GITHUB_REPO="docker.pkg.github.com/$REPO/$PROJ_NAME"
-
 
         login
 
@@ -41,13 +39,16 @@ case $CMD in
 
         docker tag $CI_TAG $REPO:"sha-$COMMIT"
         docker tag $CI_TAG $REPO:"branch-$BRANCH"
-        docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
 
         # if github token set
         if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
             docker tag $CI_TAG $GITHUB_REPO:"sha-$COMMIT"
             docker tag $CI_TAG $GITHUB_REPO:"branch-$BRANCH"
-            docker tag $CI_TAG $GITHUB_REPO:"build-$BUILD_NUMBER"
+        fi
+
+        # if AWS profile set
+        if [ -n "${AWS_PROFILE:-}" ]; then
+            docker tag $REPO # since the $REPO should be the URI in AWS ECR's case
         fi
     ;;
     push)
@@ -72,6 +73,13 @@ case $CMD in
             fi
         fi
 
+        if [ -n "${AWS_PROFILE:-}" ]; then
+            echo "Pushing to ECR"
+            docker push $REPO
+            if [ $? -ne 0 ]; then
+                echo "Push to AWS ECR failed. $REPO"
+            fi
+        fi
     ;;
     *)
         echo "Unknown command $CMD"
