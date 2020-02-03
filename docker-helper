@@ -6,9 +6,9 @@ CMD="$1"
 
 login()
 {
-    if [ -n "${AWS_PROFILE:-}" && [ -n "${AWS_DEFAULT_REGION:-}" ]; then
+    if [ -n "${AWS_PROFILE:-}" ]; then
         echo "ECR login in progress"
-        `aws ecr get-login --region us-west-2 --no-include-email`
+        `aws ecr get-login --no-include-email`
     fi
 
     if [ -n "${DOCKER_USER:-}" ] && [ -n "${DOCKER_PASS:-}" ] ; then
@@ -26,7 +26,14 @@ case $CMD in
     build)
         REPO="$2"
         BUILD_PATH="$3"
-        BRANCH=`echo $4 | sed 's/[\+\/]/-/g'`
+
+
+        # Logic to determine the BRANCH tag
+        if [ -n "$4" ]; then
+            BRANCH=`echo $4 | sed 's/[\+\/]/-/g'`
+        else
+            BRANCH=`echo $(git branch | grep * | cut -d ' ' -f2) | sed 's/[\+\/]/-/g'`
+        fi
 
         # Logic to determine the COMMIT tag
         if [ -n "$5" ]; then
@@ -49,6 +56,7 @@ case $CMD in
         else
             BUILD_NUMBER="unknown"
         fi
+
 
         CI_TAG="$REPO:ci"
         PROJ_NAME=$(basename $REPO)
