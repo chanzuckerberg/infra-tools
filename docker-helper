@@ -6,7 +6,7 @@ CMD="$1"
 
 login()
 {
-    if [ -n "${AWS_PROFILE:-}" ]; then
+    if [ -n "${AWS_PROFILE:-}" && [ -n "${AWS_DEFAULT_REGION:-}" ]; then
         echo "ECR login in progress"
         `aws ecr get-login --region us-west-2 --no-include-email`
     fi
