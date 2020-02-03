@@ -36,7 +36,7 @@ case $CMD in
         elif [ -n "${TRAVIS_COMMIT:-}" ]; then
             COMMIT="${TRAVIS_COMMIT}"
         else
-            COMMIT="unknown"
+            COMMIT=`git rev-parse --short HEAD`
         fi
 
         # Logic to determine the BUILD_NUMBER tag
