@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eo pipefail
 
 CMD="$1"
 
@@ -8,15 +8,15 @@ login()
 {
     if [ -n "${AWS_PROFILE:-}" ]; then
         echo "ECR login in progress"
-        $(aws ecr get-login --no-include-email)
+        `aws ecr get-login --region us-west-2 --no-include-email`
     fi
 
-    if [ -n "${DOCKER_USER:-}" ] || [ -n "${DOCKER_PASS:-}" ] ; then
+    if [ -n "${DOCKER_USER:-}" ] && [ -n "${DOCKER_PASS:-}" ] ; then
         echo "Dockerhub login in progress"
         docker login -u $DOCKER_USER -p $DOCKER_PASS
     fi
 
-    if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ] ; then
+    if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ] ; then
         echo "Github login in progress"
         docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
     fi
@@ -27,7 +27,29 @@ case $CMD in
         REPO="$2"
         BUILD_PATH="$3"
         BRANCH=`echo $4 | sed 's/[\+\/]/-/g'`
-        COMMIT=`git rev-parse --short HEAD`
+
+        # Logic to determine the COMMIT tag
+        if [ -n "$5" ]; then
+            COMMIT="$5"
+        elif [ -n "${CIRCLE_SHA1:-}" ]; then
+            COMMIT="${CIRCLE_SHA1}"
+        elif [ -n "${TRAVIS_COMMIT:-}" ]; then
+            COMMIT="${TRAVIS_COMMIT}"
+        else
+            COMMIT="unknown"
+        fi
+
+        # Logic to determine the BUILD_NUMBER tag
+        if [ -n "$6" ]; then
+            BUILD_NUMBER="$6"
+        elif [ -n "${CIRCLE_BUILD_NUM:-}" ]; then
+            BUILD_NUMBER="${CIRCLE_BUILD_NUM}"
+        elif [ -n "${TRAVIS_BUILD_NUMBER:-}" ]; then
+            BUILD_NUMBER="${TRAVIS_BUILD_NUMBER}"
+        else
+            BUILD_NUMBER="unknown"
+        fi
+
         CI_TAG="$REPO:ci"
         PROJ_NAME=$(basename $REPO)
         GITHUB_REPO="docker.pkg.github.com/$REPO/$PROJ_NAME"
@@ -37,18 +59,15 @@ case $CMD in
         docker pull $CI_TAG || true
         docker build --cache-from $CI_TAG -t $CI_TAG "$BUILD_PATH"
 
+        echo "Tagging ${CI_TAG} with sha-${COMMIT}, branch-${BRANCH}, and build-${BUILD_NUMBER}"
         docker tag $CI_TAG $REPO:"sha-$COMMIT"
         docker tag $CI_TAG $REPO:"branch-$BRANCH"
+        docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
 
-        # if github token set
-        if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+        # if github credentials set
+        if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
             docker tag $CI_TAG $GITHUB_REPO:"sha-$COMMIT"
             docker tag $CI_TAG $GITHUB_REPO:"branch-$BRANCH"
-        fi
-
-        # if AWS profile set
-        if [ -n "${AWS_PROFILE:-}" ]; then
-            docker tag $REPO # since the $REPO should be the URI in AWS ECR's case
         fi
     ;;
     push)
@@ -59,13 +78,13 @@ case $CMD in
         login
 
         # if dockerhub vars set, push dockerhub
-        if [ -n "${DOCKER_USER:-}" ] || [ -n "${DOCKER_PASS:-}" ]; then
+        if [ -n "${DOCKER_USER:-}" ] && [ -n "${DOCKER_PASS:-}" ]; then
             echo "Pushing to Dockerhub"
             docker push $REPO
         fi
 
         # if github_user set, push to github
-        if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+        if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
             echo "Pushing to Github Package Registry"
             docker push $GITHUB_REPO
             if [ $? -ne 0 ]; then
@@ -73,6 +92,7 @@ case $CMD in
             fi
         fi
 
+        # if aws_profile set, push to AWS
         if [ -n "${AWS_PROFILE:-}" ]; then
             echo "Pushing to ECR"
             docker push $REPO
