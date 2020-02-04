@@ -29,9 +29,9 @@ case $CMD in
 
         # Logic to determine the BRANCH tag
         if [ -n "$4" ]; then
-            BRANCH=`echo $4 | sed 's/[\+\/]/-/g'`
+            BRANCH=$(echo $4 | sed 's/[\+\/]/-/g')
         else
-            BRANCH=`echo $(git rev-parse --symbolic-full-name --abbrev-ref HEAD) | sed 's/[\+\/]/-/g'`
+            BRANCH=$(echo $(git rev-parse --symbolic-full-name --abbrev-ref HEAD) | sed 's/[\+\/]/-/g')
         fi
 
         # Logic to determine the COMMIT tag
@@ -42,7 +42,7 @@ case $CMD in
         elif [ -n "${TRAVIS_COMMIT:-}" ]; then
             COMMIT="${TRAVIS_COMMIT}"
         else
-            COMMIT=`git rev-parse --short HEAD`
+            COMMIT=$(git rev-parse --short HEAD)
         fi
 
         # Logic to determine the BUILD_NUMBER tag
