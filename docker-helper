@@ -62,7 +62,7 @@ case $CMD in
             PWD=$(pwd)
             PROJ_NAME=$(basename $PWD)
         else
-            PROJ_NAME=$(basename $REPO)
+            PROJ_NAME=$(basename $BUILD_PATH)
         fi
 
 
