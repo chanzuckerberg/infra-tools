@@ -26,8 +26,12 @@ case $CMD in
     build)
         REPO="$2"
         BUILD_PATH="$3"
+        PROJ_NAME=$(basename $REPO)
+        CI_TAG="$REPO:ci"
+        GITHUB_REPO="docker.pkg.github.com/$REPO/$PROJ_NAME"
 
-        # Logic to determine the BRANCH tag
+        # Logic to determine the BRANCH tag. sed portion turns + and / into -
+        # git rev-parse helps us get the repo's branch name
         if [ -n "$4" ]; then
             BRANCH=$(echo $4 | sed 's/[\+\/]/-/g')
         else
@@ -56,33 +60,19 @@ case $CMD in
             BUILD_NUMBER="unknown"
         fi
 
-
-        # Logic to determine the PROJ_NAME tag
-        if [[ "$BUILD_PATH" == "." ]]; then
-            PWD=$(pwd)
-            PROJ_NAME=$(basename $PWD)
-        else
-            PROJ_NAME=$(basename $BUILD_PATH)
-        fi
-
-
-        PROJ_TAG="$REPO:$PROJ_NAME"
-        GITHUB_REPO="docker.pkg.github.com/$REPO/$PROJ_NAME"
-
         login
 
-        docker pull $PROJ_TAG || true
-        docker build --cache-from $PROJ_TAG -t $PROJ_TAG "$BUILD_PATH"
+        docker pull $CI_TAG || true
+        docker build --cache-from $CI_TAG -t $CI_TAG "$BUILD_PATH"
 
-        docker tag $PROJ_TAG $REPO:"sha-$COMMIT"
-        docker tag $PROJ_TAG $REPO:"branch-$BRANCH"
-        docker tag $PROJ_TAG $REPO:"build-$BUILD_NUMBER"
-        docker tag $PROJ_TAG $REPO:"ci"
-        echo "Tagged $PROJ_TAG with sha-$COMMIT, branch-$BRANCH, build-$BUILD_NUMBER, and ci"
+        docker tag $CI_TAG $REPO:"sha-$COMMIT"
+        docker tag $CI_TAG $REPO:"branch-$BRANCH"
+        docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
+        docker tag $CI_TAG $REPO:"ci"
+        echo "Tagged $CI_TAG with sha-$COMMIT, branch-$BRANCH, build-$BUILD_NUMBER, and ci"
 
-        # if github credentials set, add github-specific tags
+        # if github credentials set, add github repo tags
         if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
-            CI_TAG="$REPO:ci"
             docker tag $CI_TAG $GITHUB_REPO:"sha-$COMMIT"
             docker tag $CI_TAG $GITHUB_REPO:"branch-$BRANCH"
             echo "Tagged $CI_TAG with $GITHUB_REPO:sha-$COMMIT and $GITHUB_REPO:branch-$BRANCH"
