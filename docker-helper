@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eo pipefail
 
 CMD="$1"
 
@@ -11,12 +11,12 @@ login()
         $(aws ecr get-login --no-include-email)
     fi
 
-    if [ -n "${DOCKER_USER:-}" ] || [ -n "${DOCKER_PASS:-}" ] ; then
+    if [ -n "${DOCKER_USER:-}" ] && [ -n "${DOCKER_PASS:-}" ] ; then
         echo "Dockerhub login in progress"
         docker login -u $DOCKER_USER -p $DOCKER_PASS
     fi
 
-    if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ] ; then
+    if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ] ; then
         echo "Github login in progress"
         docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
     fi
@@ -26,13 +26,39 @@ case $CMD in
     build)
         REPO="$2"
         BUILD_PATH="$3"
-        BRANCH=`echo $4 | sed 's/[\+\/]/-/g'`
-        COMMIT="$5"
-        BUILD_NUMBER="$6"
-        CI_TAG="$REPO:ci"
         PROJ_NAME=$(basename $REPO)
+        CI_TAG="$REPO:ci"
         GITHUB_REPO="docker.pkg.github.com/$REPO/$PROJ_NAME"
 
+        # Logic to determine the BRANCH tag. sed portion turns + and / into -
+        # git rev-parse helps us get the repo's branch name
+        if [ -n "$4" ]; then
+            BRANCH=$(echo $4 | sed 's/[\+\/]/-/g')
+        else
+            BRANCH=$(git rev-parse --symbolic-full-name --abbrev-ref HEAD | sed 's/[\+\/]/-/g')
+        fi
+
+        # Logic to determine the COMMIT tag
+        if [ -n "$5" ]; then
+            COMMIT="$5"
+        elif [ -n "${CIRCLE_SHA1:-}" ]; then
+            COMMIT="${CIRCLE_SHA1}"
+        elif [ -n "${TRAVIS_COMMIT:-}" ]; then
+            COMMIT="${TRAVIS_COMMIT}"
+        else
+            COMMIT=$(git rev-parse --short HEAD)
+        fi
+
+        # Logic to determine the BUILD_NUMBER tag
+        if [ -n "$6" ]; then
+            BUILD_NUMBER="$6"
+        elif [ -n "${CIRCLE_BUILD_NUM:-}" ]; then
+            BUILD_NUMBER="${CIRCLE_BUILD_NUM}"
+        elif [ -n "${TRAVIS_BUILD_NUMBER:-}" ]; then
+            BUILD_NUMBER="${TRAVIS_BUILD_NUMBER}"
+        else
+            BUILD_NUMBER="unknown"
+        fi
 
         login
 
@@ -42,12 +68,14 @@ case $CMD in
         docker tag $CI_TAG $REPO:"sha-$COMMIT"
         docker tag $CI_TAG $REPO:"branch-$BRANCH"
         docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
+        docker tag $CI_TAG $REPO:"ci"
+        echo "Tagged $CI_TAG with sha-$COMMIT, branch-$BRANCH, build-$BUILD_NUMBER, and ci"
 
-        # if github token set
-        if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+        # if github credentials set, add github repo tags
+        if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
             docker tag $CI_TAG $GITHUB_REPO:"sha-$COMMIT"
             docker tag $CI_TAG $GITHUB_REPO:"branch-$BRANCH"
-            docker tag $CI_TAG $GITHUB_REPO:"build-$BUILD_NUMBER"
+            echo "Tagged $CI_TAG with $GITHUB_REPO:sha-$COMMIT and $GITHUB_REPO:branch-$BRANCH"
         fi
     ;;
     push)
@@ -57,14 +85,14 @@ case $CMD in
 
         login
 
-        # if dockerhub vars set, push dockerhub
-        if [ -n "${DOCKER_USER:-}" ] || [ -n "${DOCKER_PASS:-}" ]; then
+        # if dockerhub credentials set, push dockerhub
+        if [ -n "${DOCKER_USER:-}" ] && [ -n "${DOCKER_PASS:-}" ]; then
             echo "Pushing to Dockerhub"
             docker push $REPO
         fi
 
-        # if github_user set, push to github
-        if [ -n "${GITHUB_USERNAME:-}" ] || [ -n "${GITHUB_TOKEN:-}" ]; then
+        # if github credentials set, push to github
+        if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
             echo "Pushing to Github Package Registry"
             docker push $GITHUB_REPO
             if [ $? -ne 0 ]; then
@@ -72,6 +100,14 @@ case $CMD in
             fi
         fi
 
+        # if aws_profile set, push to AWS
+        if [ -n "${AWS_PROFILE:-}" ]; then
+            echo "Pushing to ECR"
+            docker push $REPO
+            if [ $? -ne 0 ]; then
+                echo "Push to AWS ECR failed. $REPO"
+            fi
+        fi
     ;;
     *)
         echo "Unknown command $CMD"
