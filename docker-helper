@@ -78,16 +78,16 @@ case $CMD in
 
         # if dockerhub credentials set, push dockerhub
         if [ -n "${DOCKER_USER:-}" ] && [ -n "${DOCKER_PASS:-}" ]; then
-            echo "Pushing to Dockerhub"
+            echo "Pushing to Dockerhub: $REPO"
             docker push $REPO
         fi
 
         # if github credentials set, push to github
         if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
-            echo "Pushing to Github Package Registry"
-            docker push $REPO:ci
+            echo "Pushing to Github Package Registry: $REPO/$PROJ_NAME"
+            docker push $REPO/$PROJ_NAME
             if [ $? -ne 0 ]; then
-                echo "Push to $REPO failed"
+                echo "Push to $REPO/$PROJ_NAME failed"
             fi
         fi
 
