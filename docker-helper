@@ -85,7 +85,7 @@ case $CMD in
         # if github credentials set, push to github
         if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
             echo "Pushing to Github Package Registry"
-            docker push $REPO
+            docker push $REPO:ci
             if [ $? -ne 0 ]; then
                 echo "Push to $REPO failed"
             fi
