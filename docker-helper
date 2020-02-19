@@ -93,7 +93,7 @@ case $CMD in
 
         # if aws_profile set, push to AWS
         if [ -n "${AWS_PROFILE:-}" ]; then
-            echo "Pushing to ECR"
+            echo "Pushing to ECR: $REPO"
             docker push $REPO
             if [ $? -ne 0 ]; then
                 echo "Push to AWS ECR failed. $REPO"
