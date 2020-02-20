@@ -84,6 +84,8 @@ case $CMD in
 
         # if github credentials set, push to github
         if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
+            # GHPR requires an extra image name after the repo
+            # e.g. "chanzuckerberg/<proj_name>/<proj_name>"
             echo "Pushing to Github Package Registry: $REPO/$PROJ_NAME"
             docker push $REPO/$PROJ_NAME
             if [ $? -ne 0 ]; then
