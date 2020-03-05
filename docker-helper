@@ -26,7 +26,6 @@ case $CMD in
     build)
         REPO="$2"
         BUILD_PATH="$3"
-        PROJ_NAME=$(basename $REPO)
         CI_TAG="$REPO:ci"
 
         # Logic to determine the BRANCH tag. sed portion turns + and / into -
@@ -72,7 +71,6 @@ case $CMD in
     ;;
     push)
         REPO="$2"
-        PROJ_NAME=$(basename $REPO)
 
         login
 
@@ -86,10 +84,10 @@ case $CMD in
         if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
             # GHPR requires an extra image name after the repo
             # e.g. "chanzuckerberg/<proj_name>/<proj_name>"
-            echo "Pushing to Github Package Registry: $REPO/$PROJ_NAME"
-            docker push $REPO/$PROJ_NAME
+            echo "Pushing to Github Package Registry: $REPO"
+            docker push $REPO
             if [ $? -ne 0 ]; then
-                echo "Push to $REPO/$PROJ_NAME failed"
+                echo "Push to $REPO failed"
             fi
         fi
 
