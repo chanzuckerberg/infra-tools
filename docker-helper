@@ -13,12 +13,12 @@ login()
 
     if [ -n "${DOCKER_USER:-}" ] && [ -n "${DOCKER_PASS:-}" ] ; then
         echo "Dockerhub login in progress"
-        docker login -u $DOCKER_USER -p $DOCKER_PASS
+        docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
     fi
 
     if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ] ; then
         echo "Github login in progress"
-        docker login docker.pkg.github.com -u $GITHUB_USERNAME -p $GITHUB_TOKEN
+        docker login docker.pkg.github.com -u "$GITHUB_USERNAME" -p "$GITHUB_TOKEN"
     fi
 }
 
@@ -31,7 +31,7 @@ case $CMD in
         # Logic to determine the BRANCH tag. sed portion turns + and / into -
         # git rev-parse helps us get the repo's branch name
         if [ -n "$4" ]; then
-            BRANCH=$(echo $4 | sed 's/[\+\/]/-/g')
+            BRANCH=$(echo "$4" | sed 's/[\+\/]/-/g')
         else
             BRANCH=$(git rev-parse --symbolic-full-name --abbrev-ref HEAD | sed 's/[\+\/]/-/g')
         fi
@@ -43,6 +43,8 @@ case $CMD in
             COMMIT="${CIRCLE_SHA1}"
         elif [ -n "${TRAVIS_COMMIT:-}" ]; then
             COMMIT="${TRAVIS_COMMIT}"
+        elif [ -n "${GITHUB_SHA:-}" ]; then
+            COMMIT="${GITHUB_SHA}"
         else
             COMMIT=$(git rev-parse --short HEAD)
         fi
@@ -54,19 +56,21 @@ case $CMD in
             BUILD_NUMBER="${CIRCLE_BUILD_NUM}"
         elif [ -n "${TRAVIS_BUILD_NUMBER:-}" ]; then
             BUILD_NUMBER="${TRAVIS_BUILD_NUMBER}"
+        elif [ -n "${GITHUB_RUN_NUMBER:-}" ]; then
+            BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
         else
             BUILD_NUMBER="unknown"
         fi
 
         login
 
-        docker pull $CI_TAG || true
-        docker build --cache-from $CI_TAG -t $CI_TAG "$BUILD_PATH"
+        docker pull "$CI_TAG" || true
+        docker build --cache-from "$CI_TAG" -t "$CI_TAG" "$BUILD_PATH"
 
-        docker tag $CI_TAG $REPO:"sha-$COMMIT"
-        docker tag $CI_TAG $REPO:"branch-$BRANCH"
-        docker tag $CI_TAG $REPO:"build-$BUILD_NUMBER"
-        docker tag $CI_TAG $REPO:"ci"
+        docker tag "$CI_TAG" "$REPO:sha-$COMMIT"
+        docker tag "$CI_TAG" "$REPO:branch-$BRANCH"
+        docker tag "$CI_TAG" "$REPO:build-$BUILD_NUMBER"
+        docker tag "$CI_TAG" "$REPO:ci"
         echo "Tagged $CI_TAG with sha-$COMMIT, branch-$BRANCH, build-$BUILD_NUMBER, and ci"
     ;;
     push)
@@ -77,7 +81,7 @@ case $CMD in
         # if dockerhub credentials set, push dockerhub
         if [ -n "${DOCKER_USER:-}" ] && [ -n "${DOCKER_PASS:-}" ]; then
             echo "Pushing to Dockerhub: $REPO"
-            docker push $REPO
+            docker push "$REPO"
         fi
 
         # if github credentials set, push to github
@@ -85,7 +89,7 @@ case $CMD in
             # GHPR requires an extra image name after the repo
             # e.g. "chanzuckerberg/<proj_name>/<proj_name>"
             echo "Pushing to Github Package Registry: $REPO"
-            docker push $REPO
+            docker push "$REPO"
             if [ $? -ne 0 ]; then
                 echo "Push to $REPO failed"
             fi
@@ -94,7 +98,7 @@ case $CMD in
         # if aws_profile set, push to AWS
         if [ -n "${AWS_PROFILE:-}" ]; then
             echo "Pushing to ECR: $REPO"
-            docker push $REPO
+            docker push "$REPO"
             if [ $? -ne 0 ]; then
                 echo "Push to AWS ECR failed. $REPO"
             fi
